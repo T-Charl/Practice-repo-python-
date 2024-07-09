@@ -1,137 +1,42 @@
-# import requests
-# from bs4 import BeautifulSoup
-# import smtplib  # for email notifications (optional)
-
-# def check_stock(url, sender_email=None, receiver_email=None):
-#   """
-#   Checks product stock and price on a website and sends notification for changes.
-
-#   Args:
-#       url: The URL of the product page.
-#       sender_email (optional): Email address for sending notifications.
-#       receiver_email (optional): Email address to receive notifications.
-#   """
-#   try:
-#     # Fetch product page content
-#     response = requests.get(url)
-#     soup = BeautifulSoup(response.content, 'html.parser')
-
-#     # Extract price and availability text (adjust selectors for specific website)
-#     price_element = soup.find("span", class_="price")
-#     availability_element = soup.find("div", class_="stock-status")
-
-#     # Process and store extracted information
-#     current_price = None
-#     in_stock = False
-#     if price_element:
-#       current_price = float(price_element.text.strip().replace("$", ""))
-#     if availability_element:
-#       in_stock_text = availability_element.text.strip().lower()
-#       in_stock = "in stock" in in_stock_text or "available" in in_stock_text
-
-#     # Load previous data from a file (implement logic for file handling)
-#     previous_data = load_previous_data(url)
-#     previous_price = previous_data.get("price")
-#     previous_stock = previous_data.get("in_stock", False)
-
-#     # Check for changes and send notifications
-#     if current_price and (current_price != previous_price):
-#       send_notification(f"Price drop for {url}! New price: ${current_price:.2f}", sender_email, receiver_email)
-#     if in_stock and not previous_stock:
-#       send_notification(f"Back in stock! {url}", sender_email, receiver_email)
-
-#     # Update previous data for future comparisons
-#     save_previous_data(url, {"price": current_price, "in_stock": in_stock})
-
-#   except Exception as e:
-#     print(f"Error checking product: {url} - {e}")
-
-# def send_notification(message, sender_email, receiver_email):
-#   """
-#   Sends an email notification for stock or price changes (optional).
-
-#   Args:
-#       message: The notification message to send.
-#       sender_email: Email address for sending notifications.
-#       receiver_email: Email address to receive notifications.
-#   """
-#   if sender_email and receiver_email:
-#     # Configure SMTP server details (replace with your email provider settings)
-#     smtp_server = "smtp.your_email_provider.com"
-#     port = 587  # or 465 for SSL
-
-#     with smtplib.SMTP(smtp_server, port) as server:
-#       server.starttls()
-#       server.login(sender_email, "your_email_password")
-#       server.sendmail(sender_email, receiver_email, message)
-#       print(f"Notification sent for {url}")
-
-# def load_previous_data(url):
-#   """
-#   Loads previously stored data for the product URL (implement file I/O).
-
-#   Args:
-#       url: The URL of the product page.
-
-#   Returns:
-#       A dictionary containing previously stored information (price, stock).
-#   """
-#   # Replace with your implementation to load data from a file based on URL
-#   return {}
-
-# def save_previous_data(url, data):
-#   """
-#   Saves current data for future comparisons (implement file I/O).
-
-#   Args:
-#       url: The URL of the product page.
-#       data: A dictionary containing price and stock information.
-#   """
-#   # Replace with your implementation to save data to a file based on URL
-#   with open("Retrieved_data.txt", "a+", newline='') as file:
-#     retrieved = file.write(data)
-
-# # Example usage (replace with your email addresses if using notifications)
-# product_url = "https://www.zara.com/za/en/textured-split-suede-running-sneakers-p12323320.html?v1=310995825&v2=2037252"
-# # sender_email = "your_email@example.com"  # uncomment for email notifications
-# # receiver_email = "recipient_email@example.com"  # uncomment for email notifications
-# check_stock(product_url)
-
-
-
-import requests
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service as BraveService
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
 
-def get_product_info(url):
-    # Send a request to the URL
-    response = requests.get(url)
+# Path to the Brave browser executable
+brave_path = "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"  # Adjust this path as necessary
 
-    # Parse the HTML content
-    soup = BeautifulSoup(response.content, 'html.parser')
+# Configure options for Brave
+options = Options()
+options.binary_location = brave_path
+options.add_argument("--headless")  # Run in headless mode
+options.add_argument("--no-sandbox")
+options.add_argument("--disable-dev-shm-usage")
 
-    # Find the product name
-    product_name = soup.find('h1', {'class': 'product-name'}).text.strip()
+# Specify the path to your ChromeDriver
+chromedriver_path = "/usr/local/bin/chromedriver"  # Adjust this path as necessary
 
-    # Find the price
-    price_element = soup.find('span', {'class': 'price'})
-    if price_element:
-        price = price_element.text.strip()
-    else:
-        price = 'N/A'
+service = BraveService(executable_path=chromedriver_path)
+driver = webdriver.Chrome(service=service, options=options)
 
-    # Find the availability status
-    availability_element = soup.find('p', {'class': 'availability'})
-    if availability_element:
-        availability = availability_element.text.strip()
-    else:
-        availability = 'N/A'
+# URL of the Zara product
+zara_url = 'https://www.zara.com/za/en/textured-split-suede-running-sneakers-p12323320.html?v1=310995825&v2=2037252&page=5'
 
-    return product_name, price, availability
+# Fetch the page
+driver.get(zara_url)
 
-# Example usage
-url = 'https://www.zara.com/us/en/share/-p05242308.html'
-product_name, price, availability = get_product_info(url)
+# Parse the rendered HTML
+soup = BeautifulSoup(driver.page_source, 'html.parser')
 
-print(f'Product: {product_name}')
-print(f'Price: {price}')
-print(f'Availability: {availability}')
+# Extract the price (adjust the CSS selector based on the actual page structure)
+price_tag = soup.find('span', {'class': 'price-tag'})
+if price_tag:
+    price_text = price_tag.get_text(strip=True).replace('R', '').replace(',', '')
+    price = float(price_text)
+    print(f"The price of the item is: R{price}")
+else:
+    print("Price not found")
+
+# Close the browser
+driver.quit()
